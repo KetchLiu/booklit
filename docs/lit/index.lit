@@ -1,0 +1,34 @@
+\title{Booklit}{index}
+
+Booklit is a static-site generator where the content is king.
+
+Content is organized as a tree of \reference{sections}{sections}. Each section
+controls whether its sub-sections should render inline or on their own pages.
+Header sizes are set intelligently, so you're not spending your time adjusting
+\code{<h1>}s to \code{<h2>}s.
+
+Linking within your content is done by \reference{reference}{referencing tags},
+rather than hardcoding URLs. An error will be raised if any references are
+broken.
+
+\reference{plugins}{Plugins} bring \code{\\functions} to your content, allowing
+you to write with abstractions, not just markup. As patterns emerge, you can
+give them meaningful names.
+
+Presentation is separated from prose by having an explicit rendering stage.
+With the \reference{html-renderer}{HTML renderer}, you can bring your own
+templates and control exactly how everything should look.
+
+This website is written with Booklit. The source is available on GitHub under
+\link{\code{docs/lit}}{https://github.com/vito/booklit/tree/master/docs/lit}.
+To learn how to start writing your own stuff, head to
+\reference{getting-started}!
+
+\split-sections
+
+\include-section{getting-started.lit}
+\include-section{baselit.lit}
+\include-section{html-renderer.lit}
+\include-section{plugins.lit}
+\include-section{syntax.lit}
+\include-section{thanks.lit}

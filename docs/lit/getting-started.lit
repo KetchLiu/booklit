@@ -1,0 +1,192 @@
+\use-plugin{chroma}
+
+\title{Getting Started}
+
+First you'll need to grab the \code{booklit} CLI. This can be fetched from the
+latest \link{GitHub release}{https://github.com/vito/booklit/releases/latest}.
+Download the appropriate binary for your platform, \code{chmod +x} it, and drop
+it somewhere in your \code{$PATH}.
+
+The \code{chmod}ing and copying can be done in one fell swoop with
+\code{install}, like so:
+
+\syntax{bash}{{{
+$ install ~/Downloads/booklit_* ~/bin/booklit
+}}}
+
+Then, run \code{booklit -v}. You should see the version number printed out,
+assuming \code{~/bin} is in your \code{$PATH}.
+
+\section{
+  \title{Hello, world!}
+
+  First, create a file called \code{hello.lit} with the following content:
+
+  \syntax{booklit}{{{
+    \title{Hello, world!}{hello}
+
+    I'm a Booklit document!
+  }}}
+
+  Then, run the following to build it as \code{./docs/hello.html}:
+
+  \syntax{bash}{{{
+  $ booklit -i hello.lit -o docs
+  }}}
+
+  Each of the changes in the following sections will necessitate re-building.
+  This can be done by running the above command again.
+
+  Alternatively, you can run \code{booklit} with the \code{-s} flag to start a
+  HTTP server showing your generated content:
+
+  \code{{
+  $ booklit -i hello.lit -o docs -s 8000
+  }}
+
+  Then, browse to
+  \link{http://127.0.0.1:8000/hello.html}{http://127.0.0.1:8000/hello.html}.
+  When you change anything, just refresh and your content will be rebuilt and
+  served.
+}
+
+\section{
+  \title{Organizing with Sections}
+
+  Next, let's try adding a section within our document:
+
+  \syntax{booklit}{{{
+    \title{Hello, world!}{hello}
+
+    I'm a Booklit document!
+
+    \section{
+      \title{Hi there!}
+
+      I'm so organized!
+    }
+  }}}
+
+  Upon building this you should see something like:
+
+  \inset{
+    \larger{\larger{\larger{Hello, world!}}}
+
+    I'm a Booklit document!
+
+    \larger{\larger{1 Hi there!}}
+
+    I'm so organized!
+  }
+
+  That number "1" might look a bit weird at the moment, but it's the section
+  number, and will be something like "3.2" for a nested section. You can always
+  remove it by specifying your own template (more on that later), but for now
+  let's leave it.
+}
+
+\section{
+  \title{Splitting Sections}
+
+  To render each sub-section on its own page, simply call
+  \code{\\split-sections} somewhere in the section.
+
+  \syntax{booklit}{{{
+    \title{Hello, world!}{hello}
+
+    \split-sections
+
+    I'm a Booklit document!
+
+    \section{
+      \title{Hi there!}
+
+      I'm so organized!
+    }
+  }}}
+
+  So far we've just made the section disappear, which isn't very helpful. Let's
+  at least make it so we can browse to it! This can be done generally with
+  \reference{table-of-contents}:
+
+  \syntax{booklit}{{{
+    \title{Hello, world!}{hello}
+
+    \split-sections
+
+    I'm a Booklit document!
+
+    \table-of-contents
+
+    \section{
+      \title{Hi there!}
+
+      I'm so organized!
+    }
+  }}}
+
+  Note that when viewing the sub-section, its header is now a \code{<h1>}
+  rather than the \code{<h2>} it was before, since it stands on its own page.
+}
+
+\section{
+  \title{References & Tagging}
+
+  Having a \reference{table-of-contents} is great and all, but more often
+  you'll want to reference sections from each other directly and in context.
+  This can be done with \reference{reference}:
+
+  \syntax{booklit}{{{
+    \title{Hello, world!}{hello}
+
+    \split-sections
+
+    I'm a Booklit document! To read further, see
+    \reference{hi-there}.
+
+    \section{
+      \title{Hi there!}
+
+      I'm so organized!
+    }
+  }}}
+
+  The first argument to \reference{reference} is the name of a tag to link. At
+  build time, references will \italic{resolve} to their tag, and generate a
+  link to it. By default, the name of the link is determined by the tag, so for
+  a section it'll be the section's title. This can be overridden by passing a
+  second argument to \reference{reference}:
+
+  \syntax{booklit}{{{
+    \title{Hello, world!}{hello}
+
+    \split-sections
+
+    I'm a Booklit document! Consult
+    \reference{hi-there}{this section} for more.
+
+    \section{
+      \title{Hi there!}
+
+      I'm so organized!
+    }
+  }}}
+}
+
+\section{
+  \title{Next Steps}
+
+  What we've gone over should carry you pretty far. But you'll likely want to
+  know a lot more.
+
+  \list{
+    To learn all the \code{\\functions} you can call in a document
+    out-of-the-box, consult \reference{baselit}.
+  }{
+    To change how your generated content looks, check out the
+    \reference{html-renderer}{HTML renderer}.
+  }{
+    Once you've identified patterns or abstractions that you want to introduce,
+    consult \reference{plugins}.
+  }
+}

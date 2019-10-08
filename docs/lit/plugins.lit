@@ -1,0 +1,279 @@
+\use-plugin{booklitdoc}
+\use-plugin{chroma}
+
+\title{Extending with Plugins}{plugins}
+
+Plugins are what provide the functionality behind function calls like
+\code{\\foo\{bar\}}. Out of the box, Booklit comes with a plugin called
+\reference{baselit}{\code{baselit}} which provides basic primives like
+\reference{title} and \reference{section} in addition to support for basic
+markup like \reference{italic} and \reference{bold}. It also serves as a good
+reference when writing your own plugin.
+
+\section{
+  \title{Get Going}
+
+  Plugins are implemented in the \link{Go programming
+  language}{https://golang.org}, so if you're planning on writing or using one,
+  make sure you've got it installed.
+
+  First you'll need to get your \code{$GOPATH} sorted out. By default, Go sets
+  this value to \code{~/go}, but if that's not sufficient you can set it to
+  something else. This is the path under which Go source code and compiled
+  binaries will live.
+
+  One suggestion: you may want to set the root of your Booklit content as your
+  \code{$GOPATH}, so that your content can live alongside its plugins, whether
+  they're all third-party or whether you'll be writing some yourself.
+
+  For starters, let's fetch Booklit itself into your \code{$GOPATH}:
+
+  \syntax{bash}{{{
+  go get github.com/vito/booklit
+  }}}
+
+  This fetch is necessary even if you already have the \code{booklit} binary
+  installed, as plugins make use of Booklit's Go API.
+}
+
+\section{
+  \title{Using Plugins}{using-plugins}
+
+  To use a plugin, you'll need to pass its Go import path to the \code{booklit}
+  command when building your docs via the \code{--plugin} flag, like so:
+
+  \syntax{bash}{{{
+  booklit -i index.lit -o out \
+      --plugin my/fancyplugin
+  }}}
+
+  The plugin will then be pulled in at runtime, and it will register itself
+  under a certain name (conventionally, the same name as its package). Next,
+  execute \reference{use-plugin} in your \code{.lit} document to add it to the
+  section:
+
+  \syntax{booklit}{{{
+  \title{My Section}
+
+  \use-plugin{fancyplugin}
+
+  Blah blah.
+  }}}
+
+  The \code{--plugin} flag can be specified multiple times, and
+  \reference{use-plugin} can be invoked multiple times.
+
+  {-
+    TODO: having an example plugin bundled with Booklit, other than
+    booklitdoc, would be nice
+  -}
+}
+
+\section{
+  \title{Writing Plugins}{using-plugins}
+
+  To write a new plugin, first you'll need to create a directory for your
+  plugin's package in your \code{$GOPATH}. Let's just call it something cute
+  like \code{pluglit}.
+
+  \syntax{bash}{{{
+  mkdir $GOPATH/src/pluglit
+  }}}
+
+  Then, we'll create the initial skeleton for our plugin at
+  \code{$GOPATH/src/pluglit/plugin.go}:
+
+  \syntax{go}{{{
+  package pluglit
+
+  import (
+    "github.com/vito/booklit"
+  )
+
+  func init() {
+    booklit.RegisterPlugin("pluglit", NewPlugin)
+  }
+
+  func NewPlugin(sec *booklit.Section) booklit.Plugin {
+    return Plugin{
+      section: sec,
+    }
+  }
+
+  type Plugin struct {
+    section *booklit.Section
+  }
+  }}}
+
+  This registers a plugin that effectively does nothing. But it does it well.
+
+  Let's define some document functions! Functions work by simply defining
+  methods on the plugin. Let's define a basic one with no arguments:
+
+  \syntax{go}{{{
+  func (plugin Plugin) HelloWorld() booklit.Content {
+    return booklit.String("Hello, world!")
+  }
+  }}}
+
+  Now let's create a Booklit document that uses it as \code{hello-plugins.lit}:
+
+  \syntax{booklit}{{{
+  \use-plugin{pluglit}
+
+  Zero args: \hello-world
+  }}}
+
+  And build it like so:
+
+  \syntax{bash}{{{
+  booklit -i hello-plugins.lit -o out \
+      --plugin pluglit
+  }}}
+
+  This should result in a page showing:
+
+  \inset{
+    Zero args: Hello, world!
+  }
+
+  \section{
+    \title{Argument Types}
+
+    Functions can be invoked with any number of arguments, like so:
+
+    \syntax{booklit}{{{
+    \hello-world{arg1}{arg2}
+    }}}
+
+    See \reference{function-syntax} for more information.
+
+    Each argument to the function corresponds to an argument for the plugin's
+    method, which may be variadic.
+
+    The plugin's arguments must each be one of the following types:
+
+    \definitions{
+      \definition{\godoc{booklit.Content}}{
+        The evaluated content. This can be just about anything from a word to a
+        sentence to a series of paragraphs, depending on how the function is
+        invoked. It is typically used unmodified.
+      }
+    }{
+      \definition{\code{string}}{
+        The evaluated content, converted into a string. This is useful when the
+        content is expected to be something simple, like a word or line of
+        text. The \reference{title} function, for example, uses this type for
+        its variadic \italic{tags} argument.
+      }
+    }{
+      \definition{\godoc{booklit/ast.Node}}{
+        The unevaluated syntax tree for the content. This is useful when doing
+        meta-level things like \reference{section} which need to control the
+        evaluation context of the content.
+      }
+    }
+  }
+
+  \section{
+    \title{Return Values}
+
+    Plugin methods can then return one of the following:
+
+    \list{
+      nothing
+    }{
+      \code{error}
+    }{
+      \godoc{booklit.Content}
+    }{
+      \code{(\godoc{booklit.Content}, error)}
+    }
+
+    If a method returns a non-nil \code{error} value, it will bubble up and
+    the building will fail.
+  }
+
+  \section{
+    \title{A Full Example}
+
+    Putting the pieces together, let's extend our \code{pluglit} plugin from
+    earlier write a real function that does something useful:
+
+    \syntax{go}{{{
+      func (plugin Plugin) DescribeFruit(
+        name string,
+        definition booklit.Content,
+        tags ...string,
+      ) (booklit.Content, error) {
+        if name == "" {
+          return nil, errors.New("name cannot be blank")
+        }
+
+        content := booklit.Sequence{}
+        if len(tags) == 0 {
+          tags = []string{name}
+        }
+
+        for _, tag := range tags {
+          content = append(content, booklit.Target{
+            TagName: tag,
+            Display: booklit.String(name),
+          })
+        }
+
+        content = append(content, booklit.Paragraph{
+          booklit.Styled{
+            Style: booklit.StyleBold,
+            Content: booklit.String(name),
+          },
+        })
+
+        content = append(content, definition)
+
+        return content, nil
+      }
+    }}}
+
+    There are many things to note here:
+
+    \list{
+      there are two required arguments; \italic{name} is a \code{string} and
+      \italic{value} is a \godoc{booklit.Content}
+    }{
+      there's a variadic argument, \italic{tags}, which is of type
+      \code{[]string}
+    }{
+      this function generates content, and can raise an error when building
+    }{
+      the \godoc{booklit.Target} elements will result in tags being registered
+      in the section the function is called from
+    }{
+      the function name, \code{describe-fruit}, corresponds to the method name
+      \code{DescribeFruit}
+    }
+
+    This function would be called like so:
+
+    \syntax{booklit}{{{
+    \describe-fruit{banana}{
+      A banana is a yellow fruit that only really tastes
+      good in its original form. Banana flavored
+      anything is a pit of dispair.
+    }{banana-opinion}
+    }}}
+
+    ...and will result in something like the following:
+
+    \inset{
+      \describe-fruit{banana}{
+        A banana is a yellow fruit that only really tastes
+        good in its original form. Banana flavored
+        anything is a pit of dispair.
+      }{banana-opinion}
+    }
+
+    ...which can be referenced as \code{\\reference\{banana-opinion\}}, which
+    results in a link like this: \reference{banana-opinion}.
+  }
+}
